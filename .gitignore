@@ -1,0 +1,34 @@
+# ESPHome and PlatformIO build state
+.esphome/
+.pioenvs/
+.piolibdeps/
+.cache/
+build/
+*.bin
+*.elf
+*.map
+*.log
+
+# Secrets and local overrides
+secrets.yaml
+*secrets*.local.yaml
+*.local.yaml
+private/
+local-test/
+
+# Personal media should never enter public Git history
+assets/user/*
+!assets/user/README.md
+!assets/user/.gitkeep
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Editors and operating systems
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

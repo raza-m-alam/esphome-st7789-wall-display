@@ -1,0 +1,354 @@
+substitutions:
+  device_name: "st7789-wall-display"
+  friendly_name: "ST7789 Wall Display"
+  project_name: "razaalam.esphome_st7789_wall_display"
+  project_version: "0.1.0-dev"
+
+  # These demo files are safe to publish. Replace them with files generated
+  # by tools/prepare_media.py when testing personal media locally.
+  compiled_image_file: "assets/demo/background_panel.png"
+  compiled_animation_file: "assets/demo/animation_panel.gif"
+
+  # Runtime media is a still JPEG served over HTTP. Direct MP4/MOV playback
+  # is not supported by ESPHome; convert video to an embedded GIF instead.
+  default_media_url: "http://homeassistant.local:8123/local/wall_display/current.jpg"
+
+  # Used by the compiled image/animation rotation mode.
+  rotation_seconds: "10"
+
+esphome:
+  name: "${device_name}"
+  friendly_name: "${friendly_name}"
+  project:
+    name: "${project_name}"
+    version: "${project_version}"
+
+  on_boot:
+    priority: -100
+    then:
+      - logger.log: "ST7789 WALL DISPLAY PUBLIC STARTER 0.1.0-DEV"
+      - switch.turn_on: tft_backlight
+      - script.execute: ble_recovery_delay
+      - select.set:
+          id: display_mode
+          option: "Demo Rotation"
+
+esp32:
+  board: esp32-s3-devkitc-1
+  flash_size: 16MB
+  framework:
+    type: esp-idf
+
+psram:
+  mode: octal
+  speed: 80MHz
+
+logger:
+  level: INFO
+
+api:
+  encryption:
+    key: !secret wall_display_api_key
+  reboot_timeout: 15min
+
+ota:
+  - platform: esphome
+    password: !secret wall_display_ota_password
+
+wifi:
+  ssid: !secret wall_display_wifi_ssid
+  password: !secret wall_display_wifi_password
+  min_auth_mode: WPA2
+  power_save_mode: none
+  output_power: 20dB
+  fast_connect: false
+  reboot_timeout: 15min
+
+  on_connect:
+    then:
+      - script.stop: ble_recovery_delay
+      - ble.disable:
+      - online_image.set_url:
+          id: remote_media_image
+          url: !lambda |-
+            return id(remote_image_url).state;
+          update: false
+      - if:
+          condition:
+            lambda: 'return id(display_mode).current_option() == "Remote JPEG";'
+          then:
+            - component.update: remote_media_image
+
+  on_disconnect:
+    then:
+      - script.execute: ble_recovery_delay
+
+  ap:
+    ssid: "${friendly_name} Fallback"
+    password: !secret wall_display_fallback_password
+    ap_timeout: 90s
+
+captive_portal:
+
+http_request:
+  timeout: 10s
+
+improv_serial:
+
+esp32_ble:
+  name: "Wall Display Setup"
+  enable_on_boot: false
+  use_psram: true
+
+esp32_improv:
+  authorizer: none
+  wifi_timeout: 90s
+
+spi:
+  id: spi_bus
+  clk_pin: GPIO12
+  mosi_pin: GPIO11
+
+image:
+  # The tested panel requires fully RGB-inverted source media. The included
+  # demo assets and tools/prepare_media.py follow that proven pipeline.
+  - platform: file
+    file: "${compiled_image_file}"
+    id: compiled_background
+    type: RGB
+    resize: 170x320
+
+  - platform: animation
+    file: "${compiled_animation_file}"
+    id: compiled_animation
+    type: RGB
+    resize: 170x320
+
+  # Runtime JPEG path. Its color behavior must be verified physically on
+  # each panel before it is treated as equivalent to compiled media.
+  - platform: online_image
+    url: "${default_media_url}"
+    id: remote_media_image
+    format: JPEG
+    type: RGB565
+    resize: 170x320
+    placeholder: compiled_background
+    update_interval: never
+    on_download_finished:
+      then:
+        - component.update: tft_display
+    on_error:
+      then:
+        - logger.log:
+            level: WARN
+            format: "Remote JPEG download or decode failed"
+
+globals:
+  - id: rotation_started
+    type: uint32_t
+    restore_value: no
+    initial_value: '0'
+
+  - id: animation_phase_active
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+
+select:
+  - platform: template
+    id: display_mode
+    name: "Display Mode"
+    icon: "mdi:monitor-dashboard"
+    optimistic: false
+    restore_value: true
+    options:
+      - "Compiled Image"
+      - "Remote JPEG"
+      - "Animation"
+      - "Demo Rotation"
+    initial_option: "Demo Rotation"
+    set_action:
+      - lambda: |-
+          id(display_mode).publish_state(x);
+
+          if (x == "Animation") {
+            id(compiled_animation).set_frame(0);
+            id(animation_phase_active) = false;
+          } else if (x == "Demo Rotation") {
+            id(rotation_started) = millis();
+            id(compiled_animation).set_frame(0);
+            id(animation_phase_active) = true;
+          } else {
+            id(animation_phase_active) = false;
+          }
+      - if:
+          condition:
+            lambda: 'return x == "Remote JPEG";'
+          then:
+            - component.update: remote_media_image
+      - component.update: tft_display
+
+text:
+  - platform: template
+    id: remote_image_url
+    name: "Remote JPEG URL"
+    icon: "mdi:link-variant"
+    optimistic: true
+    restore_value: true
+    initial_value: "${default_media_url}"
+    min_length: 1
+    max_length: 255
+    mode: text
+    on_value:
+      then:
+        - online_image.set_url:
+            id: remote_media_image
+            url: !lambda |-
+              return x;
+            update: false
+
+text_sensor:
+  - platform: wifi_info
+    ip_address:
+      name: "${friendly_name} IP Address"
+    ssid:
+      name: "${friendly_name} Connected SSID"
+    mac_address:
+      name: "${friendly_name} MAC Address"
+
+sensor:
+  - platform: wifi_signal
+    name: "${friendly_name} Wi-Fi Signal"
+    update_interval: 60s
+
+binary_sensor:
+  - platform: status
+    name: "${friendly_name} Status"
+
+button:
+  - platform: restart
+    name: "${friendly_name} Restart"
+
+  - platform: template
+    name: "Refresh Remote JPEG"
+    icon: "mdi:refresh"
+    on_press:
+      then:
+        - online_image.set_url:
+            id: remote_media_image
+            url: !lambda |-
+              std::string base = id(remote_image_url).state;
+              const char separator =
+                  base.find('?') == std::string::npos ? '?' : '&';
+              return base + separator + "wall_display_refresh=" +
+                  std::to_string(millis());
+        - select.set:
+            id: display_mode
+            option: "Remote JPEG"
+
+script:
+  - id: ble_recovery_delay
+    mode: single
+    then:
+      - delay: 85s
+      - if:
+          condition:
+            wifi.connected:
+          then:
+            - ble.disable:
+          else:
+            - ble.enable:
+
+switch:
+  - platform: gpio
+    id: tft_backlight
+    name: "${friendly_name} Backlight"
+    pin: GPIO14
+    restore_mode: ALWAYS_ON
+
+interval:
+  - interval: 167ms
+    then:
+      - lambda: |-
+          const std::string mode = id(display_mode).current_option();
+
+          if (mode == "Animation") {
+            id(compiled_animation).next_frame();
+            id(tft_display).update();
+            return;
+          }
+
+          if (mode == "Demo Rotation") {
+            const uint32_t phase_ms =
+                (uint32_t) ${rotation_seconds} * 1000UL;
+            const uint32_t elapsed = millis() - id(rotation_started);
+            const bool show_animation =
+                ((elapsed / phase_ms) % 2UL) == 0UL;
+
+            if (show_animation) {
+              if (!id(animation_phase_active)) {
+                id(compiled_animation).set_frame(0);
+                id(animation_phase_active) = true;
+              } else {
+                id(compiled_animation).next_frame();
+              }
+              id(tft_display).update();
+            } else if (id(animation_phase_active)) {
+              id(animation_phase_active) = false;
+              id(tft_display).update();
+            }
+            return;
+          }
+
+          id(animation_phase_active) = false;
+
+display:
+  - platform: mipi_spi
+    id: tft_display
+    model: ST7789V
+    spi_id: spi_bus
+    cs_pin: GPIO10
+    dc_pin: GPIO9
+    reset_pin: GPIO13
+    data_rate: 10MHz
+    spi_mode: MODE0
+    color_order: bgr
+    invert_colors: false
+    color_depth: 16
+    buffer_size: 100%
+    dimensions:
+      width: 170
+      height: 320
+      offset_width: 35
+      offset_height: 0
+    rotation: 0
+    update_interval: 20s
+    lambda: |-
+      const std::string mode = id(display_mode).current_option();
+
+      if (mode == "Animation") {
+        it.image(0, 0, id(compiled_animation));
+        return;
+      }
+
+      if (mode == "Remote JPEG") {
+        it.image(0, 0, id(remote_media_image));
+        return;
+      }
+
+      if (mode == "Demo Rotation") {
+        const uint32_t phase_ms =
+            (uint32_t) ${rotation_seconds} * 1000UL;
+        const uint32_t elapsed = millis() - id(rotation_started);
+        const bool show_animation =
+            ((elapsed / phase_ms) % 2UL) == 0UL;
+
+        if (show_animation) {
+          it.image(0, 0, id(compiled_animation));
+        } else {
+          it.image(0, 0, id(compiled_background));
+        }
+        return;
+      }
+
+      it.image(0, 0, id(compiled_background));
