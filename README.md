@@ -11,8 +11,9 @@ wall displays.
 | `wall-display-esp32-classic-test.yaml` | Classic ESP32 hardware and BLE-recovery validation |
 
 The classic ESP32 profile has verified display geometry, RGB output, Wi-Fi,
-and reduced-memory buffering. Full PNG/GIF/JPEG behavior on that profile is
-still a physical validation item and is not presented as complete.
+reduced-memory buffering, and deterministic sample-image rendering. Full
+PNG/GIF/JPEG behavior on that profile remains a separate validation item and
+is not presented as complete.
 
 ## ESP32-S3 hardware profile
 
