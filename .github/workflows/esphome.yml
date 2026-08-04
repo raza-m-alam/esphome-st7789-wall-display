@@ -25,7 +25,7 @@ jobs:
       matrix:
         configuration:
           - wall-display.yaml
-          - hardware-tests/esp32-classic-st7789.yaml
+          - wall-display-esp32-classic-test.yaml
 
     steps:
       - name: Check out repository
@@ -52,7 +52,6 @@ jobs:
           ota_password: "ci-ota-password"
           api_encryption_key: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
           EOF
-          cp secrets.yaml hardware-tests/secrets.yaml
 
       - name: Validate ESPHome configuration
         run: esphome config "${{ matrix.configuration }}"
