@@ -59,8 +59,12 @@ buffering. Do not assume either profile is universal.
 
 ## Deterministic sample image
 
-The classic test profile includes a selectable public sample image in addition
-to the RGB bars:
+The classic test profile includes a `Test Pattern` selector with two modes:
+
+- `RGB Bars`
+- `Sample Image`
+
+The public sample is stored at:
 
 ```text
 assets/demo/display_test_card.svg
