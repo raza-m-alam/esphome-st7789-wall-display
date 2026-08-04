@@ -16,9 +16,16 @@ concurrency:
 
 jobs:
   validate-and-compile:
-    name: Validate and compile
+    name: Validate and compile ${{ matrix.configuration }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
+
+    strategy:
+      fail-fast: false
+      matrix:
+        configuration:
+          - wall-display.yaml
+          - hardware-tests/esp32-classic-st7789.yaml
 
     steps:
       - name: Check out repository
@@ -39,15 +46,15 @@ jobs:
         shell: bash
         run: |
           cat > secrets.yaml <<'EOF'
-          wall_display_wifi_ssid: "CI_TEST_NETWORK"
-          wall_display_wifi_password: "ci-wifi-password"
-          wall_display_fallback_password: "ci-fallback-password"
-          wall_display_ota_password: "ci-ota-password"
-          wall_display_api_key: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+          wifi_ssid: "CI_TEST_NETWORK"
+          wifi_password: "ci-wifi-password"
+          fallback_ap_password: "ci-fallback-password"
+          ota_password: "ci-ota-password"
+          api_encryption_key: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
           EOF
 
       - name: Validate ESPHome configuration
-        run: esphome config wall-display.yaml
+        run: esphome config "${{ matrix.configuration }}"
 
       - name: Compile firmware
-        run: esphome compile wall-display.yaml
+        run: esphome compile "${{ matrix.configuration }}"
