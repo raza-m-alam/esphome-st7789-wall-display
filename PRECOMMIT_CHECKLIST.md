@@ -11,6 +11,7 @@ Run this checklist before every pull request is merged.
 - [ ] No local paths containing a personal Windows username
 - [ ] `secrets.yaml` and local override files remain ignored
 - [ ] Demo media metadata contains no private or identifying fields
+- [ ] Repository visuals contain no C2PA, SynthID, or other AI provenance marker unless explicitly approved
 
 ## Configuration quality
 
