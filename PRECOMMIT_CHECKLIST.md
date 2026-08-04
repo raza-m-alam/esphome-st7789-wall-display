@@ -1,26 +1,36 @@
-# First commit checklist
+# Pre-merge checklist
 
-Proposed commit message:
+Run this checklist before every pull request is merged.
 
-```text
-feat: add reusable ESPHome ST7789 wall display starter
-```
+## Privacy and security
 
-Current state:
+- [ ] No real SSID, password, API key, OTA password, or token
+- [ ] No private IP address, MAC address, BSSID, hostname, or router detail
+- [ ] No family name, household name, private entity ID, or personal media
+- [ ] No raw ESPHome, serial, or installer logs
+- [ ] No local paths containing a personal Windows username
+- [ ] `secrets.yaml` and local override files remain ignored
+- [ ] Demo media metadata contains no private or identifying fields
 
-- [x] Sanitized repository tree created
-- [x] Personal media excluded
-- [x] Household entity IDs removed
-- [x] Network identifiers removed
-- [x] Secrets replaced with examples
-- [x] Generic demo assets generated
-- [x] Static and GIF media tool paths tested
-- [ ] ESPHome validation
-- [ ] ESPHome compilation
-- [ ] Physical display validation
-- [ ] Runtime JPEG color calibration
-- [ ] Rollback restoration test
-- [ ] License selected
-- [x] Local Git commit created
-- [ ] GitHub repository created
-- [ ] Public release created
+## Configuration quality
+
+- [ ] Secret references use the generalized names in `secrets.example.yaml`
+- [ ] YAML sections follow the core, network, hardware, entity, automation order
+- [ ] Board profile and physical pin mapping match
+- [ ] BLE tracker/proxy components are absent unless explicitly required
+- [ ] Classic ESP32 framebuffer remains within the tested memory limit
+
+## Validation
+
+- [ ] All GitHub Actions validation jobs pass
+- [ ] All GitHub Actions compile jobs pass
+- [ ] Physical display output remains stable
+- [ ] BLE setup window is tested without flicker, scrambling, or rebooting
+- [ ] Wi-Fi reconnect disables BLE as designed
+- [ ] Rollback path is preserved
+
+## Release controls
+
+- [ ] Repository remains private until explicitly approved
+- [ ] No release or public tag is created without approval
+- [ ] License is selected before public release
