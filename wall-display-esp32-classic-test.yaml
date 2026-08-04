@@ -72,6 +72,13 @@ spi:
   clk_pin: GPIO18
   mosi_pin: GPIO23
 
+image:
+  - platform: file
+    file: "assets/demo/display_test_card.svg"
+    id: display_test_card
+    type: RGB
+    resize: 170x320
+
 switch:
   - platform: gpio
     id: tft_backlight
@@ -101,10 +108,30 @@ display:
     rotation: 0
     update_interval: never
     lambda: |-
+      if (id(test_pattern).current_option() == "Sample Image") {
+        it.image(0, 0, id(display_test_card));
+        return;
+      }
+
       it.fill(Color(0, 0, 0));
       it.filled_rectangle(10, 20, 150, 80, Color(255, 0, 0));
       it.filled_rectangle(10, 120, 150, 80, Color(0, 255, 0));
       it.filled_rectangle(10, 220, 150, 80, Color(0, 0, 255));
+
+select:
+  - platform: template
+    id: test_pattern
+    name: "Test Pattern"
+    icon: "mdi:image-multiple"
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    options:
+      - "RGB Bars"
+      - "Sample Image"
+    initial_option: "Sample Image"
+    set_action:
+      - component.update: tft_display
 
 text_sensor:
   - platform: wifi_info
