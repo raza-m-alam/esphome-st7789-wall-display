@@ -8,7 +8,7 @@ wall displays.
 | Configuration | Status |
 |---|---|
 | `wall-display.yaml` | Full ESP32-S3 media starter |
-| `hardware-tests/esp32-classic-st7789.yaml` | Classic ESP32 hardware and BLE-recovery validation |
+| `wall-display-esp32-classic-test.yaml` | Classic ESP32 hardware and BLE-recovery validation |
 
 The classic ESP32 profile has verified display geometry, RGB output, Wi-Fi,
 and reduced-memory buffering. Full PNG/GIF/JPEG behavior on that profile is
