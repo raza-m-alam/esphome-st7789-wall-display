@@ -127,6 +127,11 @@ The classic profile deliberately uses a 12.5% display buffer. A full
 108,800-byte framebuffer caused severe resource pressure when Wi-Fi and BLE
 were enabled together on a non-PSRAM ESP32.
 
+During physical sample-image validation, Wi-Fi required multiple initial
+association attempts and later experienced one short reconnect event. The
+display remained correctly rendered, and the device recovered without a
+watchdog reset or boot loop.
+
 ## Use your own image
 
 Install the Python dependency:
