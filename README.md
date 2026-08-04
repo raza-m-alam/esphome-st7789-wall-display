@@ -57,6 +57,26 @@ still a physical validation item and is not presented as complete.
 Other boards may require different pins, offsets, color order, inversion, or
 buffering. Do not assume either profile is universal.
 
+## Deterministic sample image
+
+The classic test profile includes a selectable public sample image in addition
+to the RGB bars:
+
+```text
+assets/demo/display_test_card.svg
+```
+
+The test card is deterministic vector source created as code. It contains no
+C2PA metadata, generative-image watermark, or embedded personal information.
+Its exact-byte SHA-256 fingerprint is stored beside it:
+
+```text
+assets/demo/display_test_card.svg.sha256
+```
+
+The fingerprint verifies file integrity. It does not, by itself, prove legal
+ownership or survive edits that change the file bytes.
+
 ## Secrets
 
 The repository uses generalized ESPHome secret names:
