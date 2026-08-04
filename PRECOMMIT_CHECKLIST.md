@@ -12,6 +12,7 @@ Run this checklist before every pull request is merged.
 - [ ] `secrets.yaml` and local override files remain ignored
 - [ ] Demo media metadata contains no private or identifying fields
 - [ ] Repository visuals contain no C2PA, SynthID, or other AI provenance marker unless explicitly approved
+- [ ] Public test visuals have an exact-byte SHA-256 sidecar when appropriate
 
 ## Configuration quality
 
@@ -25,7 +26,8 @@ Run this checklist before every pull request is merged.
 
 - [ ] All GitHub Actions validation jobs pass
 - [ ] All GitHub Actions compile jobs pass
-- [ ] Physical display output remains stable
+- [x] Physical RGB display output remains stable
+- [x] Deterministic sample image displays correctly on the classic ESP32 profile
 - [ ] BLE setup window is tested without flicker, scrambling, or rebooting
 - [ ] Wi-Fi reconnect disables BLE as designed
 - [ ] Rollback path is preserved
