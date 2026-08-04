@@ -130,7 +130,8 @@ were enabled together on a non-PSRAM ESP32.
 During physical sample-image validation, Wi-Fi required multiple initial
 association attempts and later experienced one short reconnect event. The
 display remained correctly rendered, and the device recovered without a
-watchdog reset or boot loop.
+watchdog reset or boot loop. The active 20-minute BLE setup window remains a
+separate physical test.
 
 ## Use your own image
 
