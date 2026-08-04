@@ -1,23 +1,24 @@
 # ESPHome ST7789 Wall Display
 
-A reusable local-first ESPHome starter for an ESP32-S3 and a portrait
-170x320 ST7789V display. It supports:
+A reusable, local-first ESPHome starter for portrait 170x320 ST7789V
+wall displays.
 
-- Embedded still images
-- Embedded GIF animation
-- Alternating still/animation mode
-- Runtime JPEG loading from Home Assistant or another HTTP server
-- Home Assistant mode selection, refresh, backlight, restart, and status
-- Wi-Fi fallback and delayed BLE setup recovery
-- A media preparation tool for images, GIFs, MP4s, and MOVs
+## Current profiles
 
-## Tested hardware profile
+| Configuration | Status |
+|---|---|
+| `wall-display.yaml` | Full ESP32-S3 media starter |
+| `hardware-tests/esp32-classic-st7789.yaml` | Classic ESP32 hardware and BLE-recovery validation |
 
-This repository begins with one empirically tested profile:
+The classic ESP32 profile has verified display geometry, RGB output, Wi-Fi,
+and reduced-memory buffering. Full PNG/GIF/JPEG behavior on that profile is
+still a physical validation item and is not presented as complete.
+
+## ESP32-S3 hardware profile
 
 | Function | Setting |
 |---|---|
-| ESP32 board | `esp32-s3-devkitc-1` |
+| Board | `esp32-s3-devkitc-1` |
 | Flash | 16 MB |
 | Framework | ESP-IDF |
 | PSRAM | Octal, 80 MHz |
@@ -31,20 +32,75 @@ This repository begins with one empirically tested profile:
 | Width offset | 35 |
 | Color order | BGR |
 | Driver inversion | Off |
-| Color depth | 16-bit |
+| Buffer | 100% in PSRAM |
 | SPI rate | 10 MHz |
 
-Other ST7789 boards may require different pins, offsets, color order, or
-inversion. Do not assume this is a universal ST7789 profile.
+## Classic ESP32 test profile
+
+| Function | Setting |
+|---|---|
+| Board | `esp32dev` / ESP32-WROOM-32D |
+| Framework | ESP-IDF |
+| Display | ST7789V, 170x320 portrait |
+| SPI clock | GPIO18 |
+| SPI MOSI | GPIO23 |
+| CS | GPIO22 |
+| DC | GPIO16 |
+| Reset | GPIO17 |
+| Backlight | GPIO4 |
+| Width offset | 35 |
+| Color order | BGR |
+| Driver inversion | On |
+| Buffer | 12.5% / 13,600 bytes |
+| SPI rate | 5 MHz |
+
+Other boards may require different pins, offsets, color order, inversion, or
+buffering. Do not assume either profile is universal.
+
+## Secrets
+
+The repository uses generalized ESPHome secret names:
+
+```yaml
+wifi_ssid: "..."
+wifi_password: "..."
+fallback_ap_password: "..."
+ota_password: "..."
+api_encryption_key: "..."
+```
+
+Copy `secrets.example.yaml` into ESPHome's active `secrets.yaml`, or generate
+random API, OTA, and fallback-AP values locally:
+
+```powershell
+py .\tools\generate_secrets.py
+```
+
+The generated file is ignored by Git. Replace its Wi-Fi placeholders and
+merge the values into the active ESPHome `secrets.yaml`.
 
 ## Quick start
 
 1. Copy the repository into the ESPHome configuration directory.
-2. Merge the names from `secrets.example.yaml` into ESPHome's active
-   `secrets.yaml`.
-3. Replace every placeholder with a real value.
-4. Validate and compile `wall-display.yaml`.
-5. Install only after preserving the last known-good firmware and YAML.
+2. Add the generalized secret keys to ESPHome's active `secrets.yaml`.
+3. Choose the configuration that matches the physical board.
+4. Validate and compile it.
+5. Preserve the last known-good YAML and firmware before installation.
+6. Perform the first installation over USB.
+
+## Wi-Fi and BLE recovery
+
+The configurations keep BLE disabled during normal operation:
+
+1. Attempt normal Wi-Fi first.
+2. If Wi-Fi remains unavailable for 90 seconds, enable BLE Improv.
+3. Keep BLE provisioning available for up to 20 minutes.
+4. Disable BLE immediately when Wi-Fi connects.
+5. Start the fallback access point after the BLE window.
+
+The classic profile deliberately uses a 12.5% display buffer. A full
+108,800-byte framebuffer caused severe resource pressure when Wi-Fi and BLE
+were enabled together on a non-PSRAM ESP32.
 
 ## Use your own image
 
@@ -94,10 +150,8 @@ Change this substitution:
 compiled_animation_file: "assets/user/animation_panel.gif"
 ```
 
-Recompile and install.
-
-ESPHome does not directly play MP4 or MOV files in this configuration.
-The tool extracts and prepares frames, then creates an embedded GIF.
+ESPHome does not directly play MP4 or MOV files in this configuration. The
+preparation tool extracts frames and creates an embedded GIF.
 
 ## Runtime JPEG
 
@@ -108,29 +162,29 @@ directory and serve it at:
 http://homeassistant.local:8123/local/wall_display/current.jpg
 ```
 
-You can also enter another URL through the `Remote JPEG URL` entity and
-press `Refresh Remote JPEG`.
+You can also enter another URL through the `Remote JPEG URL` entity and press
+`Refresh Remote JPEG`.
 
-Runtime JPEG color is still a physical validation item for the tested
-panel. Compiled PNG/GIF compensation is proven; do not claim equivalent
-runtime color until the calibration test passes.
+Runtime JPEG color remains a physical validation item for the S3 profile.
+Compiled PNG/GIF compensation is proven; equivalent runtime color should not
+be claimed until calibration passes.
 
-## Privacy
+## Privacy and repository hygiene
 
 Never commit:
 
 - `secrets.yaml`
 - Family photographs or videos
-- Household names
-- Wi-Fi names or passwords
-- API or OTA credentials
-- Private IP addresses or MAC addresses
+- Household or network names
+- Wi-Fi, API, or OTA credentials
+- Private IP addresses, MAC addresses, or BSSIDs
 - Home Assistant entity IDs tied to a private home
-- Raw logs containing network or device details
+- Raw ESPHome logs containing network or device details
 
-`assets/user/` is ignored by Git for this reason.
+`assets/user/`, local overrides, and common raw-log export names are ignored
+by Git.
 
 ## Status
 
-This is a **first-commit candidate**, not a public release. The required
-physical validation is documented in `docs/validation.md`.
+This repository remains private and under hardware validation. It is not a
+public release.
