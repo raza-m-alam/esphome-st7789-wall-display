@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="170" height="320" viewBox="0 0 170 320">
+  <defs>
+    <linearGradient id="gray" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#000000"/>
+      <stop offset="1" stop-color="#ffffff"/>
+    </linearGradient>
+    <linearGradient id="spectrum" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#ff0000"/>
+      <stop offset="0.2" stop-color="#ffff00"/>
+      <stop offset="0.4" stop-color="#00ff00"/>
+      <stop offset="0.6" stop-color="#00ffff"/>
+      <stop offset="0.8" stop-color="#0000ff"/>
+      <stop offset="1" stop-color="#ff00ff"/>
+    </linearGradient>
+    <pattern id="checker" width="16" height="16" patternUnits="userSpaceOnUse">
+      <rect width="16" height="16" fill="#ffffff"/>
+      <rect width="8" height="8" fill="#000000"/>
+      <rect x="8" y="8" width="8" height="8" fill="#000000"/>
+    </pattern>
+  </defs>
+
+  <rect width="170" height="320" fill="#101820"/>
+  <rect x="2" y="2" width="166" height="316" fill="none" stroke="#ffffff" stroke-width="2"/>
+
+  <rect x="10" y="12" width="46" height="28" fill="#ff0000"/>
+  <rect x="62" y="12" width="46" height="28" fill="#00ff00"/>
+  <rect x="114" y="12" width="46" height="28" fill="#0000ff"/>
+
+  <rect x="10" y="50" width="150" height="18" fill="url(#gray)" stroke="#ffffff" stroke-width="1"/>
+  <rect x="10" y="76" width="150" height="18" fill="url(#spectrum)" stroke="#ffffff" stroke-width="1"/>
+
+  <rect x="10" y="104" width="72" height="72" fill="url(#checker)" stroke="#ffffff" stroke-width="1"/>
+  <circle cx="124" cy="140" r="36" fill="#202020" stroke="#ffffff" stroke-width="1"/>
+  <circle cx="124" cy="140" r="28" fill="none" stroke="#ff0000" stroke-width="4"/>
+  <circle cx="124" cy="140" r="20" fill="none" stroke="#00ff00" stroke-width="4"/>
+  <circle cx="124" cy="140" r="12" fill="none" stroke="#0000ff" stroke-width="4"/>
+  <circle cx="124" cy="140" r="4" fill="#ffffff"/>
+
+  <rect x="10" y="188" width="150" height="54" fill="#000000" stroke="#ffffff" stroke-width="1"/>
+  <path d="M10 242 L160 188 M10 188 L160 242" stroke="#ffffff" stroke-width="1"/>
+  <path d="M10 215 H160 M85 188 V242" stroke="#808080" stroke-width="1"/>
+  <rect x="18" y="196" width="16" height="16" fill="#ff0000"/>
+  <rect x="42" y="196" width="16" height="16" fill="#ffff00"/>
+  <rect x="66" y="196" width="16" height="16" fill="#00ff00"/>
+  <rect x="90" y="196" width="16" height="16" fill="#00ffff"/>
+  <rect x="114" y="196" width="16" height="16" fill="#0000ff"/>
+  <rect x="138" y="196" width="14" height="16" fill="#ff00ff"/>
+
+  <rect x="10" y="254" width="150" height="52" fill="#182a3a" stroke="#ffffff" stroke-width="1"/>
+  <path d="M18 298 L48 262 L78 298 L108 262 L138 298 L152 282" fill="none" stroke="#ffffff" stroke-width="2"/>
+  <circle cx="18" cy="298" r="3" fill="#ff0000"/>
+  <circle cx="48" cy="262" r="3" fill="#ffff00"/>
+  <circle cx="78" cy="298" r="3" fill="#00ff00"/>
+  <circle cx="108" cy="262" r="3" fill="#00ffff"/>
+  <circle cx="138" cy="298" r="3" fill="#0000ff"/>
+  <circle cx="152" cy="282" r="3" fill="#ff00ff"/>
+
+  <rect x="0" y="0" width="8" height="8" fill="#ffffff"/>
+  <rect x="162" y="0" width="8" height="8" fill="#ffffff"/>
+  <rect x="0" y="312" width="8" height="8" fill="#ffffff"/>
+  <rect x="162" y="312" width="8" height="8" fill="#ffffff"/>
+</svg>
