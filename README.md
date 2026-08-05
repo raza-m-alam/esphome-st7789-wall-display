@@ -8,12 +8,13 @@ wall displays.
 | Configuration | Status |
 |---|---|
 | `wall-display.yaml` | Full ESP32-S3 media starter |
-| `wall-display-esp32-classic-test.yaml` | Classic ESP32 hardware and BLE-recovery validation |
+| `wall-display-esp32-classic-test.yaml` | Physically validated classic ESP32 display and BLE-recovery profile |
 
 The classic ESP32 profile has verified display geometry, RGB output, Wi-Fi,
-reduced-memory buffering, and deterministic sample-image rendering. Full
-PNG/GIF/JPEG behavior on that profile remains a separate validation item and
-is not presented as complete.
+reduced-memory buffering, deterministic sample-image rendering, manual BLE
+start/stop controls, and timed BLE recovery. Full PNG/GIF/JPEG behavior on
+that profile remains a separate validation item and is not presented as
+complete.
 
 ## ESP32-S3 hardware profile
 
@@ -115,23 +116,28 @@ merge the values into the active ESPHome `secrets.yaml`.
 
 ## Wi-Fi and BLE recovery
 
-The configurations keep BLE disabled during normal operation:
+The configurations keep BLE disabled during normal operation. The classic
+profile uses this recovery sequence:
 
 1. Attempt normal Wi-Fi first.
-2. If Wi-Fi remains unavailable for 90 seconds, enable BLE Improv.
-3. Keep BLE provisioning available for up to 20 minutes.
-4. Disable BLE immediately when Wi-Fi connects.
-5. Start the fallback access point after the BLE window.
+2. If Wi-Fi remains unavailable for 90 seconds, start BLE Improv.
+3. Turn the TFT backlight off while BLE is active.
+4. Keep BLE provisioning available for up to 10 minutes.
+5. Allow the user to stop BLE early with `Stop BLE Setup`.
+6. Disable BLE when Wi-Fi connects, the user stops setup, or the timer ends.
+7. Restore the prior backlight state and redraw the display.
+8. Start the fallback access point after approximately 12 minutes without
+   normal Wi-Fi.
 
 The classic profile deliberately uses a 12.5% display buffer. A full
 108,800-byte framebuffer caused severe resource pressure when Wi-Fi and BLE
 were enabled together on a non-PSRAM ESP32.
 
-During physical sample-image validation, Wi-Fi required multiple initial
-association attempts and later experienced one short reconnect event. The
-display remained correctly rendered, and the device recovered without a
-watchdog reset or boot loop. The active 20-minute BLE setup window remains a
-separate physical test.
+Physical testing showed that Wi-Fi and BLE can coexist without a watchdog
+reset or image corruption at the reduced buffer size. Active BLE caused
+visible backlight flicker when the backlight was manually turned on; the image
+remained clear, and the flicker stopped immediately when BLE was disabled.
+The production profile therefore keeps the display dark during BLE setup.
 
 ## Use your own image
 
@@ -217,5 +223,6 @@ by Git.
 
 ## Status
 
-This repository remains private and under hardware validation. It is not a
-public release.
+This repository remains private and is a pre-release candidate. Publication
+requires a final privacy review, successful CI on the final configuration,
+license selection, and explicit approval to make the repository public.
