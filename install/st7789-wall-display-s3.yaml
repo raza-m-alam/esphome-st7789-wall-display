@@ -1,0 +1,207 @@
+substitutions:
+  name: "st7789-wall-display"
+  friendly_name: "ST7789 Wall Display"
+  project_version: "0.1.0-test"
+  ble_start_delay: "90s"
+  ble_window_duration: "10min"
+
+esphome:
+  name: "${name}"
+  friendly_name: "${friendly_name}"
+  min_version: 2026.7.0
+  name_add_mac_suffix: true
+  project:
+    name: "razaalam.esphome_st7789_wall_display"
+    version: "${project_version}"
+
+  on_boot:
+    priority: -100
+    then:
+      - logger.log: "ST7789 S3 end-user installation test starting"
+      - switch.turn_on: tft_backlight
+      - select.set:
+          id: test_pattern
+          option: "RGB Bars"
+      - component.update: tft_display
+      - script.execute: ble_recovery_delay
+
+esp32:
+  board: esp32-s3-devkitc-1
+  flash_size: 16MB
+  framework:
+    type: esp-idf
+
+psram:
+  mode: octal
+  speed: 80MHz
+
+logger:
+  level: DEBUG
+
+# Device Builder should add a unique encryption key locally for this device.
+api:
+
+# Device Builder should add a unique OTA password locally for this device.
+ota:
+  - platform: esphome
+
+# The published template contains no SSID, password, or secret reference.
+# Configure the user's network locally in Device Builder before installation,
+# or provision the device through Improv after installing factory firmware.
+wifi:
+  power_save_mode: none
+  output_power: 20dB
+  reboot_timeout: 15min
+
+  on_connect:
+    then:
+      - script.stop: ble_recovery_delay
+      - script.stop: ble_setup_window
+      - ble.disable:
+      - logger.log: "Wi-Fi connected; BLE setup disabled"
+
+  on_disconnect:
+    then:
+      - script.execute: ble_recovery_delay
+
+# After factory firmware is published, Device Builder can discover the device
+# and create a minimal local configuration that references this remote package.
+dashboard_import:
+  package_import_url: github://raza-m-alam/esphome-st7789-wall-display/install/st7789-wall-display-s3.yaml@main
+  import_full_config: false
+
+improv_serial:
+
+esp32_ble:
+  name: "Wall Display Setup"
+  enable_on_boot: false
+  use_psram: true
+
+esp32_improv:
+  authorizer: none
+
+spi:
+  id: spi_bus
+  clk_pin: GPIO12
+  mosi_pin: GPIO11
+
+switch:
+  - platform: gpio
+    id: tft_backlight
+    name: "Backlight"
+    pin: GPIO14
+    restore_mode: ALWAYS_ON
+
+display:
+  - platform: mipi_spi
+    id: tft_display
+    model: ST7789V
+    spi_id: spi_bus
+    cs_pin: GPIO10
+    dc_pin: GPIO9
+    reset_pin: GPIO13
+    data_rate: 10MHz
+    spi_mode: MODE0
+    color_order: BGR
+    invert_colors: true
+    color_depth: 16
+    buffer_size: 100%
+    dimensions:
+      width: 170
+      height: 320
+      offset_width: 35
+      offset_height: 0
+    rotation: 0
+    update_interval: never
+    lambda: |-
+      it.fill(Color(0, 0, 0));
+      it.filled_rectangle(10, 20, 150, 80, Color(255, 0, 0));
+      it.filled_rectangle(10, 120, 150, 80, Color(0, 255, 0));
+      it.filled_rectangle(10, 220, 150, 80, Color(0, 0, 255));
+
+select:
+  - platform: template
+    id: test_pattern
+    name: "Test Pattern"
+    icon: "mdi:image-multiple"
+    entity_category: config
+    optimistic: false
+    restore_value: false
+    initial_option: "RGB Bars"
+    options:
+      - "RGB Bars"
+    set_action:
+      - lambda: |-
+          id(test_pattern).publish_state(x);
+      - component.update: tft_display
+
+text_sensor:
+  - platform: wifi_info
+    ip_address:
+      name: "IP Address"
+      entity_category: diagnostic
+    ssid:
+      name: "Connected SSID"
+      entity_category: diagnostic
+    mac_address:
+      name: "Wi-Fi MAC"
+      entity_category: diagnostic
+
+sensor:
+  - platform: wifi_signal
+    name: "Wi-Fi Signal"
+    entity_category: diagnostic
+    update_interval: 60s
+
+binary_sensor:
+  - platform: status
+    name: "Status"
+    entity_category: diagnostic
+
+button:
+  - platform: restart
+    name: "Restart"
+    entity_category: config
+
+  - platform: safe_mode
+    name: "Safe Mode"
+    entity_category: diagnostic
+
+  - platform: template
+    name: "Start BLE Setup"
+    icon: "mdi:bluetooth-connect"
+    entity_category: config
+    on_press:
+      - script.stop: ble_recovery_delay
+      - script.execute: ble_setup_window
+
+  - platform: template
+    name: "Stop BLE Setup"
+    icon: "mdi:bluetooth-off"
+    entity_category: config
+    on_press:
+      - script.stop: ble_setup_window
+      - ble.disable:
+      - logger.log: "BLE setup manually stopped"
+
+script:
+  - id: ble_recovery_delay
+    mode: restart
+    then:
+      - delay: "${ble_start_delay}"
+      - if:
+          condition:
+            wifi.connected:
+          then:
+            - ble.disable:
+          else:
+            - script.execute: ble_setup_window
+
+  - id: ble_setup_window
+    mode: single
+    then:
+      - logger.log: "BLE setup window started"
+      - ble.enable:
+      - delay: "${ble_window_duration}"
+      - ble.disable:
+      - logger.log: "BLE setup window ended"
