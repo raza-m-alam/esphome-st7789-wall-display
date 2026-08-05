@@ -73,7 +73,7 @@ dashboard_import:
 improv_serial:
 
 esp32_ble:
-  name: "Wall Display Setup"
+  name: "Wall Setup"
   enable_on_boot: false
   use_psram: true
 
