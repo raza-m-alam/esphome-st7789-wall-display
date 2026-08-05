@@ -6,7 +6,7 @@ substitutions:
   ble_start_delay: "90s"
   ble_window_duration: "10min"
   fallback_ap_delay: "12min"
-  default_remote_image_url: "https://media.esphome.io/logo/logo.png"
+  default_remote_image_url: "https://upload.wikimedia.org/wikipedia/commons/3/3f/JPEG_example_flower.jpg"
 
 esphome:
   name: "${name}"
@@ -67,7 +67,7 @@ wifi:
       - script.execute: ble_cleanup
       - if:
           condition:
-            lambda: 'return id(display_mode).current_option() == "Remote Image";'
+            lambda: 'return id(display_mode).current_option() == "Remote JPEG";'
           then:
             - script.execute: refresh_remote_image
 
@@ -104,7 +104,7 @@ image:
   - platform: online_image
     url: "${default_remote_image_url}"
     id: remote_image
-    format: AUTO
+    format: JPEG
     type: RGB565
     resize: 170x320
     update_interval: never
@@ -213,7 +213,7 @@ display:
     lambda: |-
       const std::string mode = id(display_mode).current_option();
 
-      if (mode == "Remote Image") {
+      if (mode == "Remote JPEG") {
         if (id(remote_image_loaded)) {
           it.image(0, 0, id(remote_image));
           return;
@@ -268,7 +268,7 @@ select:
     options:
       - "Static Test"
       - "Animation Test"
-      - "Remote Image"
+      - "Remote JPEG"
       - "Demo Rotation"
 
     set_action:
@@ -283,7 +283,7 @@ select:
 
       - if:
           condition:
-            lambda: 'return x == "Remote Image";'
+            lambda: 'return x == "Remote JPEG";'
           then:
             - lambda: |-
                 id(remote_image_loaded) = false;
@@ -298,7 +298,7 @@ select:
 text:
   - platform: template
     id: remote_image_url
-    name: "Remote Image URL"
+    name: "Remote JPEG URL"
     icon: "mdi:link-variant"
     optimistic: true
     restore_value: true
@@ -320,14 +320,14 @@ text:
           state: "Not loaded"
       - if:
           condition:
-            lambda: 'return id(display_mode).current_option() == "Remote Image";'
+            lambda: 'return id(display_mode).current_option() == "Remote JPEG";'
           then:
             - component.update: tft_display
 
 text_sensor:
   - platform: template
     id: remote_image_status
-    name: "Remote Image Status"
+    name: "Remote JPEG Status"
     icon: "mdi:image-check"
     entity_category: diagnostic
     update_interval: never
@@ -372,12 +372,12 @@ button:
     entity_category: diagnostic
 
   - platform: template
-    name: "Refresh Remote Image"
+    name: "Refresh Remote JPEG"
     icon: "mdi:refresh"
     on_press:
       - select.set:
           id: display_mode
-          option: "Remote Image"
+          option: "Remote JPEG"
       - script.execute: refresh_remote_image
 
   - platform: template
