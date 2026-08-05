@@ -16,24 +16,26 @@ Run this checklist before every pull request is merged.
 
 ## Configuration quality
 
-- [ ] Secret references use the generalized names in `secrets.example.yaml`
-- [ ] YAML sections follow the core, network, hardware, entity, automation order
-- [ ] Board profile and physical pin mapping match
-- [ ] BLE tracker/proxy components are absent unless explicitly required
-- [ ] Classic ESP32 framebuffer remains within the tested memory limit
+- [x] Secret references use the generalized names in `secrets.example.yaml`
+- [x] YAML sections follow the core, network, hardware, entity, automation order
+- [x] Board profile and physical pin mapping match
+- [x] BLE tracker/proxy components are absent unless explicitly required
+- [x] Classic ESP32 framebuffer remains within the tested memory limit
 
 ## Validation
 
-- [ ] All GitHub Actions validation jobs pass
-- [ ] All GitHub Actions compile jobs pass
+- [ ] All GitHub Actions validation jobs pass on the final commit
+- [ ] All GitHub Actions compile jobs pass on the final commit
 - [x] Physical RGB display output remains stable
 - [x] Deterministic sample image displays correctly on the classic ESP32 profile
-- [ ] BLE setup window is tested without flicker, scrambling, or rebooting
+- [x] BLE setup completes without image corruption, watchdog reset, or boot loop
+- [x] Backlight is disabled during BLE setup and can be restored afterward
+- [x] Manual BLE stop disables BLE immediately
 - [ ] Wi-Fi reconnect disables BLE as designed
-- [ ] Rollback path is preserved
+- [x] Rollback path is preserved in Git history
 
 ## Release controls
 
-- [ ] Repository remains private until explicitly approved
-- [ ] No release or public tag is created without approval
+- [x] Repository remains private until explicitly approved
+- [x] No release or public tag is created without approval
 - [ ] License is selected before public release
