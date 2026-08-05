@@ -4,15 +4,15 @@ Run this checklist before every pull request is merged.
 
 ## Privacy and security
 
-- [ ] No real SSID, password, API key, OTA password, or token
-- [ ] No private IP address, MAC address, BSSID, hostname, or router detail
-- [ ] No family name, household name, private entity ID, or personal media
-- [ ] No raw ESPHome, serial, or installer logs
-- [ ] No local paths containing a personal Windows username
-- [ ] `secrets.yaml` and local override files remain ignored
-- [ ] Demo media metadata contains no private or identifying fields
-- [ ] Repository visuals contain no C2PA, SynthID, or other AI provenance marker unless explicitly approved
-- [ ] Public test visuals have an exact-byte SHA-256 sidecar when appropriate
+- [x] No real SSID, password, API key, OTA password, or token
+- [x] No private IP address, MAC address, BSSID, hostname, or router detail
+- [x] No family name, household name, private entity ID, or personal media
+- [x] No raw ESPHome, serial, or installer logs
+- [x] No local paths containing a personal Windows username
+- [x] `secrets.yaml` and local override files remain ignored
+- [x] Demo media metadata contains no private or identifying fields
+- [x] Repository visuals contain no C2PA, SynthID, or other AI provenance marker unless explicitly approved
+- [x] Public test visuals have an exact-byte SHA-256 sidecar when appropriate
 
 ## Configuration quality
 
