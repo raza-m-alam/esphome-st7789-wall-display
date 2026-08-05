@@ -26,6 +26,7 @@ jobs:
         configuration:
           - wall-display.yaml
           - wall-display-esp32-classic-test.yaml
+          - install/st7789-wall-display-s3.yaml
 
     steps:
       - name: Check out repository
