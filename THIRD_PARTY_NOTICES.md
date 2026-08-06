@@ -59,3 +59,10 @@ A compiled ESPHome firmware image can also contain ESP-IDF and other platform
 components selected by ESPHome. Those components retain their upstream
 licenses. Review the generated build notices and dependency manifests before
 redistributing firmware binaries.
+
+## Trademarks
+
+ESPHome, Home Assistant, ESP32, ST7789, and other product or project names are
+used only to identify compatibility. All trademarks remain the property of
+their respective owners. This independent project is not represented as an
+official, affiliated, sponsored, or endorsed product of those owners.
