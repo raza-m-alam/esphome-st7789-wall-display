@@ -72,7 +72,7 @@ wifi:
       - script.execute: ble_recovery_delay
 
   ap:
-    ssid: "${friendly_name} Fallback"
+    ssid: "ST7789 Classic Fallback"
     password: !secret fallback_ap_password
     ap_timeout: "${fallback_ap_delay}"
 
