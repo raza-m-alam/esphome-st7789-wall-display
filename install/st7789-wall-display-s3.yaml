@@ -1,11 +1,11 @@
 substitutions:
   name: "st7789-wall-display-s3"
   friendly_name: "ST7789 Wall Display"
-  project_version: "0.3.1-test"
+  project_version: "0.1.0-rc1"
   rotation_seconds: "10"
   ble_start_delay: "90s"
   ble_window_duration: "10min"
-  default_remote_image_url: "http://homeassistant.local:8123/local/wall_display/test.jpg"
+  default_remote_image_url: "http://homeassistant.local:8123/local/wall_display/current.jpg"
 
 esphome:
   name: "${name}"
@@ -19,7 +19,7 @@ esphome:
   on_boot:
     priority: -100
     then:
-      - logger.log: "ST7789 S3 clean manual-install test starting"
+      - logger.log: "ST7789 S3 release candidate starting"
       - switch.turn_on: tft_backlight_output
       - text_sensor.template.publish:
           id: remote_image_status
@@ -74,8 +74,8 @@ wifi:
     then:
       - script.execute: ble_recovery_delay
 
-  # Kept disabled during this manual-install test. The user configures Wi-Fi
-  # before flashing, so an open fallback AP is not required.
+  # Disabled in the manual-install profile. Wi-Fi is configured before the
+  # first flash, so an open fallback access point is not required.
   ap:
     ap_timeout: 0s
 
