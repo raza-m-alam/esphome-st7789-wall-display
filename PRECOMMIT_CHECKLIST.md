@@ -28,8 +28,8 @@ Run this checklist before every release pull request is merged.
 
 ## Automated validation
 
-- [ ] All GitHub Actions validation jobs pass on the final release commit
-- [ ] All GitHub Actions compile jobs pass on the final release commit
+- [x] All GitHub Actions validation jobs pass on the final release commit
+- [x] All GitHub Actions compile jobs pass on the final release commit
 - [x] ESPHome version used for CI matches the final validated release version
 
 ## Physical validation — ESP32-S3 N16R8
