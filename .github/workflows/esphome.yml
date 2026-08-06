@@ -24,9 +24,9 @@ jobs:
       fail-fast: false
       matrix:
         configuration:
-          - wall-display.yaml
-          - wall-display-esp32-classic-test.yaml
           - install/st7789-wall-display-s3.yaml
+          - wall-display-esp32-classic.yaml
+          - wall-display.yaml
 
     steps:
       - name: Check out repository
@@ -41,7 +41,7 @@ jobs:
       - name: Install ESPHome and media dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install "esphome==2026.7.3" -r requirements.txt
+          python -m pip install "esphome==2026.7.4" -r requirements.txt
 
       - name: Create non-secret CI configuration
         shell: bash
