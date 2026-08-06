@@ -202,7 +202,9 @@ licenses; see `THIRD_PARTY_NOTICES.md` before redistributing firmware binaries.
 
 ## Status
 
-Hardware validation is complete for the primary S3 profile and advanced
-classic ESP32 profile. The repository remains private until the release branch
-is squash-merged, the final privacy check passes, and publication is explicitly
-approved.
+Hardware validation is complete for the primary ESP32-S3 profile and the
+advanced classic ESP32 profile.
+
+Version `0.1.0` is the first public release. The project remains pre-1.0, so
+the supported installation and configuration surface may continue to evolve
+before a future `1.0.0` stability commitment.
