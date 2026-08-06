@@ -9,6 +9,10 @@ build/
 *.map
 *.log
 
+# Raw diagnostic exports
+logs/
+*-logs*.txt
+
 # Secrets and local overrides
 secrets.yaml
 *secrets*.local.yaml

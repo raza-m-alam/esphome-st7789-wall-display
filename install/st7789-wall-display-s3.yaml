@@ -1,0 +1,486 @@
+substitutions:
+  name: "st7789-wall-display-s3"
+  friendly_name: "ST7789 Wall Display"
+  project_version: "0.1.0"
+  rotation_seconds: "10"
+  ble_start_delay: "90s"
+  ble_window_duration: "10min"
+  default_remote_image_url: "http://homeassistant.local:8123/local/wall_display/current.jpg"
+
+esphome:
+  name: "${name}"
+  friendly_name: "${friendly_name}"
+  min_version: 2026.7.4
+  name_add_mac_suffix: false
+  project:
+    name: "razaalam.esphome_st7789_wall_display"
+    version: "${project_version}"
+
+  on_boot:
+    priority: -100
+    then:
+      - logger.log: "ST7789 S3 0.1.0 starting"
+      - switch.turn_on: tft_backlight_output
+      - text_sensor.template.publish:
+          id: remote_image_status
+          state: "Not loaded"
+      - select.set:
+          id: display_mode
+          option: "Demo Rotation"
+      - component.update: tft_display
+      - script.execute: ble_recovery_delay
+
+esp32:
+  board: esp32-s3-devkitc-1
+  flash_size: 16MB
+  framework:
+    type: esp-idf
+
+psram:
+  mode: octal
+  speed: 80MHz
+
+logger:
+  level: INFO
+
+# Device Builder adds a unique local API encryption key.
+api:
+  reboot_timeout: 15min
+
+# Device Builder adds a unique local OTA password.
+ota:
+  - platform: esphome
+
+# Device Builder adds the user's local Wi-Fi credentials.
+wifi:
+  min_auth_mode: WPA2
+  power_save_mode: none
+  output_power: 20dB
+  fast_connect: false
+  reboot_timeout: 15min
+
+  on_connect:
+    then:
+      - script.stop: ble_recovery_delay
+      - script.stop: ble_setup_window
+      - script.execute: ble_cleanup
+      - if:
+          condition:
+            lambda: 'return id(display_mode).current_option() == "Remote JPEG";'
+          then:
+            - script.execute: refresh_remote_image
+
+  on_disconnect:
+    then:
+      - script.execute: ble_recovery_delay
+
+  # Kept disabled during this manual-install test. The user configures Wi-Fi
+  # before flashing, so an open fallback AP is not required.
+  ap:
+    ap_timeout: 0s
+
+improv_serial:
+
+esp32_ble:
+  name: "Wall Setup"
+  enable_on_boot: false
+  use_psram: true
+
+esp32_improv:
+  authorizer: none
+  wifi_timeout: 90s
+
+http_request:
+  timeout: 15s
+
+spi:
+  id: spi_bus
+  clk_pin: GPIO12
+  mosi_pin: GPIO11
+
+image:
+  - platform: online_image
+    url: "${default_remote_image_url}"
+    id: remote_image
+    format: JPEG
+    type: RGB565
+    resize: 170x320
+    update_interval: never
+
+    on_download_finished:
+      then:
+        - lambda: |-
+            id(remote_image_loaded) = true;
+        - text_sensor.template.publish:
+            id: remote_image_status
+            state: "Loaded"
+        - component.update: tft_display
+
+    on_error:
+      then:
+        - lambda: |-
+            id(remote_image_loaded) = false;
+        - text_sensor.template.publish:
+            id: remote_image_status
+            state: "Error"
+        - component.update: tft_display
+
+globals:
+  - id: rotation_started
+    type: uint32_t
+    restore_value: no
+    initial_value: "0"
+
+  - id: animation_frame
+    type: int
+    restore_value: no
+    initial_value: "0"
+
+  - id: animation_phase_active
+    type: bool
+    restore_value: no
+    initial_value: "false"
+
+  - id: remote_image_loaded
+    type: bool
+    restore_value: no
+    initial_value: "false"
+
+  - id: ble_setup_active
+    type: bool
+    restore_value: no
+    initial_value: "false"
+
+  - id: backlight_was_on
+    type: bool
+    restore_value: no
+    initial_value: "false"
+
+switch:
+  - platform: gpio
+    id: tft_backlight_output
+    internal: true
+    pin: GPIO14
+    restore_mode: ALWAYS_ON
+
+  - platform: template
+    id: tft_backlight
+    name: "Backlight"
+    icon: "mdi:lightbulb"
+    lambda: |-
+      return id(tft_backlight_output).state;
+
+    turn_on_action:
+      - if:
+          condition:
+            lambda: 'return !id(ble_setup_active);'
+          then:
+            - switch.turn_on: tft_backlight_output
+          else:
+            - logger.log:
+                level: WARN
+                format: "Backlight remains off while BLE setup is active"
+
+    turn_off_action:
+      - switch.turn_off: tft_backlight_output
+
+display:
+  - platform: mipi_spi
+    id: tft_display
+    model: ST7789V
+    spi_id: spi_bus
+    cs_pin: GPIO10
+    dc_pin: GPIO9
+    reset_pin: GPIO13
+    data_rate: 10MHz
+    spi_mode: MODE0
+    color_order: BGR
+    invert_colors: true
+    color_depth: 16
+    buffer_size: 100%
+
+    dimensions:
+      width: 170
+      height: 320
+      offset_width: 35
+      offset_height: 0
+
+    rotation: 0
+    update_interval: never
+
+    lambda: |-
+      const std::string mode = id(display_mode).current_option();
+
+      if (mode == "Remote JPEG") {
+        if (id(remote_image_loaded)) {
+          it.image(0, 0, id(remote_image));
+          return;
+        }
+
+        it.fill(Color(0, 0, 0));
+        const Color border =
+            id(remote_image_status).state == "Error"
+                ? Color(255, 0, 0)
+                : Color(255, 165, 0);
+        it.filled_rectangle(0, 0, 170, 6, border);
+        it.filled_rectangle(0, 314, 170, 6, border);
+        it.filled_rectangle(0, 0, 6, 320, border);
+        it.filled_rectangle(164, 0, 6, 320, border);
+        it.line(20, 80, 150, 240, Color(255, 255, 255));
+        it.line(150, 80, 20, 240, Color(255, 255, 255));
+        return;
+      }
+
+      bool show_animation = mode == "Animation Test";
+
+      if (mode == "Demo Rotation") {
+        const uint32_t phase_ms =
+            (uint32_t) ${rotation_seconds} * 1000UL;
+        const uint32_t elapsed = millis() - id(rotation_started);
+        show_animation = ((elapsed / phase_ms) % 2UL) == 1UL;
+      }
+
+      if (show_animation) {
+        it.fill(Color(0, 0, 0));
+        const int y_positions[8] = {30, 67, 104, 141, 178, 215, 252, 289};
+        const int frame = id(animation_frame) & 7;
+        it.filled_circle(85, y_positions[frame], 16, Color(255, 255, 0));
+        return;
+      }
+
+      it.fill(Color(0, 0, 0));
+      it.filled_rectangle(10, 12, 150, 60, Color(255, 0, 0));
+      it.filled_rectangle(10, 86, 150, 60, Color(0, 255, 0));
+      it.filled_rectangle(10, 160, 150, 60, Color(0, 0, 255));
+      it.filled_rectangle(10, 234, 150, 60, Color(255, 255, 255));
+
+select:
+  - platform: template
+    id: display_mode
+    name: "Display Mode"
+    icon: "mdi:monitor-dashboard"
+    optimistic: false
+    restore_value: false
+    initial_option: "Demo Rotation"
+
+    options:
+      - "Static Test"
+      - "Animation Test"
+      - "Remote JPEG"
+      - "Demo Rotation"
+
+    set_action:
+      - lambda: |-
+          id(display_mode).publish_state(x);
+          id(animation_frame) = 0;
+          id(animation_phase_active) = false;
+
+          if (x == "Demo Rotation") {
+            id(rotation_started) = millis();
+          }
+
+      - if:
+          condition:
+            lambda: 'return x == "Remote JPEG";'
+          then:
+            - lambda: |-
+                id(remote_image_loaded) = false;
+            - text_sensor.template.publish:
+                id: remote_image_status
+                state: "Downloading"
+            - component.update: tft_display
+            - script.execute: refresh_remote_image
+          else:
+            - component.update: tft_display
+
+text:
+  - platform: template
+    id: remote_image_url
+    name: "Remote JPEG URL"
+    icon: "mdi:link-variant"
+    optimistic: true
+    restore_value: true
+    initial_value: "${default_remote_image_url}"
+    min_length: 1
+    max_length: 255
+    mode: text
+
+    set_action:
+      - lambda: |-
+          id(remote_image_url).publish_state(x);
+          id(remote_image_loaded) = false;
+      - online_image.set_url:
+          id: remote_image
+          url: !lambda 'return x;'
+          update: false
+      - text_sensor.template.publish:
+          id: remote_image_status
+          state: "Not loaded"
+      - if:
+          condition:
+            lambda: 'return id(display_mode).current_option() == "Remote JPEG";'
+          then:
+            - component.update: tft_display
+
+text_sensor:
+  - platform: template
+    id: remote_image_status
+    name: "Remote JPEG Status"
+    icon: "mdi:image-check"
+    entity_category: diagnostic
+    update_interval: never
+
+  - platform: wifi_info
+    ip_address:
+      name: "IP Address"
+      entity_category: diagnostic
+    ssid:
+      name: "Connected SSID"
+      entity_category: diagnostic
+    mac_address:
+      name: "Wi-Fi MAC"
+      entity_category: diagnostic
+
+sensor:
+  - platform: wifi_signal
+    name: "Wi-Fi Signal"
+    entity_category: diagnostic
+    update_interval: 60s
+
+binary_sensor:
+  - platform: status
+    name: "Status"
+    entity_category: diagnostic
+
+  - platform: template
+    id: ble_setup_active_sensor
+    name: "BLE Setup Active"
+    icon: "mdi:bluetooth"
+    entity_category: diagnostic
+    lambda: |-
+      return id(ble_setup_active);
+
+button:
+  - platform: restart
+    name: "Restart"
+    entity_category: config
+
+  - platform: safe_mode
+    name: "Safe Mode"
+    entity_category: diagnostic
+
+  - platform: template
+    name: "Refresh Remote JPEG"
+    icon: "mdi:refresh"
+    on_press:
+      - select.set:
+          id: display_mode
+          option: "Remote JPEG"
+      - script.execute: refresh_remote_image
+
+  - platform: template
+    name: "Start BLE Setup"
+    icon: "mdi:bluetooth-connect"
+    entity_category: config
+    on_press:
+      - script.stop: ble_recovery_delay
+      - script.execute: ble_setup_window
+
+  - platform: template
+    name: "Stop BLE Setup"
+    icon: "mdi:bluetooth-off"
+    entity_category: config
+    on_press:
+      - script.stop: ble_setup_window
+      - script.execute: ble_cleanup
+
+script:
+  - id: refresh_remote_image
+    mode: restart
+    then:
+      - lambda: |-
+          id(remote_image_loaded) = false;
+      - text_sensor.template.publish:
+          id: remote_image_status
+          state: "Downloading"
+      - component.update: tft_display
+      - online_image.set_url:
+          id: remote_image
+          url: !lambda |-
+            std::string base = id(remote_image_url).state;
+            const char separator =
+                base.find('?') == std::string::npos ? '?' : '&';
+            return base + separator + "wall_display_refresh=" +
+                std::to_string(millis());
+          update: false
+      - component.update: remote_image
+
+  - id: ble_recovery_delay
+    mode: restart
+    then:
+      - delay: "${ble_start_delay}"
+      - if:
+          condition:
+            wifi.connected:
+          then:
+            - script.execute: ble_cleanup
+          else:
+            - script.execute: ble_setup_window
+
+  - id: ble_setup_window
+    mode: single
+    then:
+      - lambda: |-
+          id(backlight_was_on) = id(tft_backlight_output).state;
+          id(ble_setup_active) = true;
+      - switch.turn_off: tft_backlight_output
+      - logger.log: "BLE setup window started; display backlight disabled"
+      - ble.enable:
+      - delay: "${ble_window_duration}"
+      - script.execute: ble_cleanup
+
+  - id: ble_cleanup
+    mode: restart
+    then:
+      - ble.disable:
+      - delay: 250ms
+      - lambda: |-
+          id(ble_setup_active) = false;
+      - if:
+          condition:
+            lambda: 'return id(backlight_was_on);'
+          then:
+            - switch.turn_on: tft_backlight_output
+      - lambda: |-
+          id(backlight_was_on) = false;
+      - component.update: tft_display
+      - logger.log: "BLE setup disabled; display restored"
+
+interval:
+  - interval: 167ms
+    then:
+      - lambda: |-
+          if (id(ble_setup_active)) {
+            return;
+          }
+
+          const std::string mode = id(display_mode).current_option();
+          bool show_animation = mode == "Animation Test";
+
+          if (mode == "Demo Rotation") {
+            const uint32_t phase_ms =
+                (uint32_t) ${rotation_seconds} * 1000UL;
+            const uint32_t elapsed = millis() - id(rotation_started);
+            show_animation = ((elapsed / phase_ms) % 2UL) == 1UL;
+
+            if (show_animation != id(animation_phase_active)) {
+              id(animation_phase_active) = show_animation;
+              id(animation_frame) = 0;
+              id(tft_display).update();
+            }
+          }
+
+          if (show_animation) {
+            id(animation_frame) = (id(animation_frame) + 1) & 7;
+            id(tft_display).update();
+          }

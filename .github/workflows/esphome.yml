@@ -16,16 +16,24 @@ concurrency:
 
 jobs:
   validate-and-compile:
-    name: Validate and compile
+    name: Validate and compile ${{ matrix.configuration }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
+    strategy:
+      fail-fast: false
+      matrix:
+        configuration:
+          - install/st7789-wall-display-s3.yaml
+          - wall-display-esp32-classic.yaml
+          - wall-display.yaml
+
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.13"
           cache: pip
@@ -33,21 +41,21 @@ jobs:
       - name: Install ESPHome and media dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install "esphome==2026.7.3" -r requirements.txt
+          python -m pip install "esphome==2026.7.4" -r requirements.txt
 
       - name: Create non-secret CI configuration
         shell: bash
         run: |
           cat > secrets.yaml <<'EOF'
-          wall_display_wifi_ssid: "CI_TEST_NETWORK"
-          wall_display_wifi_password: "ci-wifi-password"
-          wall_display_fallback_password: "ci-fallback-password"
-          wall_display_ota_password: "ci-ota-password"
-          wall_display_api_key: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+          wifi_ssid: "CI_TEST_NETWORK"
+          wifi_password: "ci-wifi-password"
+          fallback_ap_password: "ci-fallback-password"
+          ota_password: "ci-ota-password"
+          api_encryption_key: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
           EOF
 
       - name: Validate ESPHome configuration
-        run: esphome config wall-display.yaml
+        run: esphome config "${{ matrix.configuration }}"
 
       - name: Compile firmware
-        run: esphome compile wall-display.yaml
+        run: esphome compile "${{ matrix.configuration }}"

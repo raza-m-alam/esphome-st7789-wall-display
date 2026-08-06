@@ -1,26 +1,31 @@
 # ESPHome ST7789 Wall Display
 
-A reusable local-first ESPHome starter for an ESP32-S3 and a portrait
-170x320 ST7789V display. It supports:
+A local-first ESPHome starter for portrait 170x320 ST7789V wall displays.
+It provides a primary ESP32-S3 installation profile, an advanced reduced-memory
+classic ESP32 profile, Home Assistant controls, OTA updates, local JPEG
+loading, animation, and guarded BLE provisioning.
 
-- Embedded still images
-- Embedded GIF animation
-- Alternating still/animation mode
-- Runtime JPEG loading from Home Assistant or another HTTP server
-- Home Assistant mode selection, refresh, backlight, restart, and status
-- Wi-Fi fallback and delayed BLE setup recovery
-- A media preparation tool for images, GIFs, MP4s, and MOVs
+## Release profiles
 
-## Tested hardware profile
+| Configuration | Status |
+|---|---|
+| `install/st7789-wall-display-s3.yaml` | Primary ESP32-S3 profile; physically validated |
+| `wall-display-esp32-classic.yaml` | Advanced classic ESP32 profile; physically validated |
+| `wall-display.yaml` | Compiled-media development profile; not the primary installation path |
 
-This repository begins with one empirically tested profile:
+The first public release is `0.1.0`. The supported installation surface may
+still evolve before a future `1.0.0` stability commitment.
+
+## Primary ESP32-S3 profile
+
+The primary profile was tested on an ESP32-S3 N16R8 module.
 
 | Function | Setting |
 |---|---|
-| ESP32 board | `esp32-s3-devkitc-1` |
+| Board | `esp32-s3-devkitc-1` |
 | Flash | 16 MB |
+| PSRAM | 8 MB octal, 80 MHz |
 | Framework | ESP-IDF |
-| PSRAM | Octal, 80 MHz |
 | Display | ST7789V, 170x320 portrait |
 | SPI clock | GPIO12 |
 | SPI MOSI | GPIO11 |
@@ -30,107 +35,174 @@ This repository begins with one empirically tested profile:
 | Backlight | GPIO14 |
 | Width offset | 35 |
 | Color order | BGR |
-| Driver inversion | Off |
-| Color depth | 16-bit |
+| Driver inversion | On |
+| Buffer | 100% / 108,800 bytes in PSRAM |
 | SPI rate | 10 MHz |
 
-Other ST7789 boards may require different pins, offsets, color order, or
-inversion. Do not assume this is a universal ST7789 profile.
+Verified behavior:
 
-## Quick start
+- correct RGBW geometry and color output;
+- eight-frame animation and timed demo rotation;
+- immediate display-mode changes;
+- encrypted Native API connectivity;
+- device-specific OTA password and successful wireless updates;
+- local JPEG download with explicit `Downloading`, `Loaded`, and `Error` states;
+- BLE Start turns the backlight off before enabling BLE;
+- BLE Stop disables BLE and restores the prior display state;
+- no visible BLE flicker while the protected backlight behavior is active.
 
-1. Copy the repository into the ESPHome configuration directory.
-2. Merge the names from `secrets.example.yaml` into ESPHome's active
-   `secrets.yaml`.
-3. Replace every placeholder with a real value.
-4. Validate and compile `wall-display.yaml`.
-5. Install only after preserving the last known-good firmware and YAML.
+## Install the S3 profile
 
-## Use your own image
+1. Download `install/st7789-wall-display-s3.yaml`.
+2. In Home Assistant, open **ESPHome Device Builder**.
+3. Select **Create device**, then **Import from File**.
+4. Open the imported configuration in Device Navigator.
+5. Add the local Wi-Fi SSID and password.
+6. Enable Native API encryption and let Device Builder generate a unique key.
+7. Add a unique ESPHome OTA password.
+8. Validate the configuration.
+9. Perform the first installation over USB.
+10. Use OTA for later updates.
 
-Install the Python dependency:
+The imported configuration uses a fixed hostname and does not append a MAC
+suffix. Device Builder therefore tracks the same hostname that the device
+announces after installation.
 
-```powershell
-py -m pip install -r .\requirements.txt
-```
+## Device-specific credentials
 
-Prepare a normal photograph:
+The primary installation file contains no real SSID, Wi-Fi password, API key,
+OTA password, private address, or `!secret` reference. Device Builder creates
+local secret references when the user configures the device.
 
-```powershell
-py .\tools\prepare_media.py .\my-photo.jpg
-```
+Recommended behavior:
 
-The default output is:
+- Wi-Fi values remain in the user's ESPHome installation;
+- each device receives its own API encryption key;
+- each device receives its own OTA password;
+- generated secret values are never committed to this repository.
 
-```text
-assets/user/background_panel.png
-```
+## Remote JPEG
 
-Change this substitution in `wall-display.yaml`:
-
-```yaml
-compiled_image_file: "assets/user/background_panel.png"
-```
-
-Recompile and install the firmware.
-
-## Use a GIF, MP4, or MOV
-
-Video conversion requires FFmpeg on `PATH`.
-
-```powershell
-py .\tools\prepare_media.py .\my-video.mp4
-```
-
-The default output is:
+The S3 profile can load a baseline JPEG from Home Assistant or another local
+HTTP server. A typical Home Assistant location is:
 
 ```text
-assets/user/animation_panel.gif
+/config/www/wall_display/current.jpg
 ```
 
-Change this substitution:
-
-```yaml
-compiled_animation_file: "assets/user/animation_panel.gif"
-```
-
-Recompile and install.
-
-ESPHome does not directly play MP4 or MOV files in this configuration.
-The tool extracts and prepares frames, then creates an embedded GIF.
-
-## Runtime JPEG
-
-Place a baseline JPEG in Home Assistant's `/config/www/wall_display/`
-directory and serve it at:
+Home Assistant serves that file at:
 
 ```text
 http://homeassistant.local:8123/local/wall_display/current.jpg
 ```
 
-You can also enter another URL through the `Remote JPEG URL` entity and
-press `Refresh Remote JPEG`.
+The exact URL is editable through the `Remote JPEG URL` entity. Press
+`Refresh Remote JPEG` after changing it. The status reports `Downloading`,
+`Loaded`, or `Error`, and the display uses a visible loading or error frame
+instead of silently showing stale content.
 
-Runtime JPEG color is still a physical validation item for the tested
-panel. Compiled PNG/GIF compensation is proven; do not claim equivalent
-runtime color until the calibration test passes.
+## BLE provisioning behavior
 
-## Privacy
+BLE is disabled during normal operation.
+
+1. Normal Wi-Fi is attempted first.
+2. BLE provisioning can be started manually or after the recovery delay.
+3. The TFT backlight is forced off before BLE starts.
+4. The Backlight control refuses to illuminate the panel while BLE is active.
+5. BLE ends when the user presses `Stop BLE Setup`, Wi-Fi reconnects, or the
+   10-minute setup window expires.
+6. The prior backlight state and display mode are restored afterward.
+
+This behavior is intentional. Active BLE caused visible backlight flicker on
+both tested boards when the panel remained illuminated. Display data remained
+intact; keeping the panel dark removes the visible artifact.
+
+## Classic ESP32 profile
+
+| Function | Setting |
+|---|---|
+| Board | `esp32dev` / ESP32-WROOM-32D |
+| Framework | ESP-IDF |
+| Display | ST7789V, 170x320 portrait |
+| SPI clock | GPIO18 |
+| SPI MOSI | GPIO23 |
+| CS | GPIO22 |
+| DC | GPIO16 |
+| Reset | GPIO17 |
+| Backlight | GPIO4 |
+| Width offset | 35 |
+| Color order | BGR |
+| Driver inversion | On |
+| Buffer | 12.5% / 13,600 bytes |
+| SPI rate | 5 MHz |
+
+The reduced framebuffer is deliberate. A full 108,800-byte buffer created
+severe resource pressure when Wi-Fi and BLE were enabled together on a
+non-PSRAM ESP32. The 13,600-byte profile remained stable during physical
+Wi-Fi, API, display, and BLE testing.
+
+The classic configuration is an advanced source profile. Copy the generalized
+keys from `secrets.example.yaml` into the user's local ESPHome secrets file,
+then validate and perform the first installation over USB.
+
+## Compiled-media development profile
+
+`wall-display.yaml` retains the embedded PNG/GIF and optional video-conversion
+workflow used during development. It is kept separate from the primary
+installation file so first-time users do not need local media assets or Python
+tools merely to install the wall display.
+
+See `docs/media.md` for the media pipeline and `tools/prepare_media.py` for
+optional conversion of still images, GIFs, MP4s, and MOVs.
+
+## Demo assets
+
+The public demo PNG, GIF, and SVG files are project-specific test graphics.
+They contain no personal photographs, household information, creator fields,
+device identifiers, or location metadata. The exact bytes of the classic SVG
+test card are recorded in `assets/demo/display_test_card.svg.sha256`.
+
+## Privacy and repository hygiene
 
 Never commit:
 
-- `secrets.yaml`
-- Family photographs or videos
-- Household names
-- Wi-Fi names or passwords
-- API or OTA credentials
-- Private IP addresses or MAC addresses
-- Home Assistant entity IDs tied to a private home
-- Raw logs containing network or device details
+- `secrets.yaml`;
+- Wi-Fi, API, or OTA credentials;
+- private IP addresses, MAC addresses, or BSSIDs;
+- household names or private Home Assistant entity IDs;
+- family photographs or videos;
+- raw ESPHome or installer logs.
 
-`assets/user/` is ignored by Git for this reason.
+`assets/user/`, local overrides, and common raw-log export names are ignored by
+Git.
+
+## Validation
+
+GitHub Actions validates and compiles the primary S3 profile, the classic
+ESP32 profile, and the full-media development profile. Physical results and
+release gates are recorded in `PRECOMMIT_CHECKLIST.md` and
+`docs/validation.md`.
+
+## Authorship and project identifier
+
+The intentional public project namespace is:
+
+```text
+razaalam.esphome_st7789_wall_display
+```
+
+It identifies this ESPHome project and is not a credential or household name.
+Copyright ownership is recorded in `LICENSE` as **Raza M Alam**.
+
+## License
+
+Original content in this repository is available under the MIT License. See
+`LICENSE`. Upstream tools and generated firmware components retain their own
+licenses; see `THIRD_PARTY_NOTICES.md` before redistributing firmware binaries.
 
 ## Status
 
-This is a **first-commit candidate**, not a public release. The required
-physical validation is documented in `docs/validation.md`.
+Hardware validation is complete for the primary S3 profile and advanced
+classic ESP32 profile. The repository remains private until the release branch
+is squash-merged, the final privacy check passes, and publication is explicitly
+approved.
