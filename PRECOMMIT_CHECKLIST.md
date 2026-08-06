@@ -64,11 +64,11 @@ Run this checklist before every release pull request is merged.
 
 ## Release controls
 
-- [x] Repository remains private until explicitly approved
-- [x] No public tag or release is created without approval
-- [x] Rollback path remains available in private development history
-- [ ] Stale development branches and visible workflow history are cleaned or intentionally retained
-- [ ] Pull requests are archived or intentionally left public before visibility changes
-- [ ] Final squash merge is complete
-- [ ] One post-merge privacy scan passes
-- [ ] Explicit approval is received before changing repository visibility
+- [x] Repository remained private until publication was explicitly approved
+- [x] No public tag or release was created without approval
+- [x] Rollback history was preserved during private development
+- [x] Stale branches and visible workflow history were cleaned or intentionally retained
+- [x] Pull requests were intentionally retained as public development history
+- [x] Final squash merge completed
+- [x] Post-merge privacy scan passed
+- [x] Publication was explicitly approved before repository visibility changed
