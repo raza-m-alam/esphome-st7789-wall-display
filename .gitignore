@@ -20,7 +20,7 @@ secrets.yaml
 private/
 local-test/
 
-# Personal media should never enter public Git history
+# Local media
 assets/user/*
 !assets/user/README.md
 !assets/user/.gitkeep
@@ -30,6 +30,8 @@ __pycache__/
 *.py[cod]
 .venv/
 venv/
+.pytest_cache/
+.ruff_cache/
 
 # Editors and operating systems
 .vscode/
