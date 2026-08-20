@@ -1,9 +1,8 @@
 """Prepare still images, GIFs, MP4s, or MOVs for the tested 170x320 panel.
 
-The tested panel requires all source RGB channels to be fully inverted
-before ESPHome embeds the media. This script performs that compensation,
-resizes/crops the input, writes the expected output filename, and reopens
-the result for validation.
+The tested panel requires all source RGB channels to be fully inverted before
+ESPHome embeds the media. This script applies that compensation, resizes or
+crops the input, writes a PNG or GIF, and reopens the result for validation.
 
 Video input requires ffmpeg on PATH.
 """
@@ -16,14 +15,12 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
-from typing import Iterable
 
 from PIL import Image, ImageOps, ImageSequence
 
 WIDTH = 170
 HEIGHT = 320
 VIDEO_EXTENSIONS = {".mp4", ".mov", ".m4v", ".avi", ".mkv", ".webm"}
-ANIMATED_EXTENSIONS = {".gif", ".webp"}
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_IMAGE_OUTPUT = REPO_ROOT / "assets" / "user" / "background_panel.png"
@@ -38,8 +35,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--output",
         type=Path,
-        help="Output path. Defaults to assets/user/background_panel.png "
-             "or assets/user/animation_panel.gif.",
+        help=(
+            "Output path. Defaults to assets/user/background_panel.png "
+            "or assets/user/animation_panel.gif."
+        ),
     )
     parser.add_argument(
         "--fit",
@@ -62,8 +61,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--no-invert",
         action="store_true",
-        help="Do not fully invert RGB. Use only for a panel proven not to "
-             "need the tested panel's compensation.",
+        help=(
+            "Do not fully invert RGB. Use only for a panel proven not to need "
+            "the tested panel's compensation."
+        ),
     )
     return parser.parse_args()
 
@@ -93,6 +94,13 @@ def compensate(image: Image.Image, invert: bool) -> Image.Image:
 
 def prepare_frame(image: Image.Image, fit: str, invert: bool) -> Image.Image:
     return compensate(fit_frame(image, fit), invert)
+
+
+def validate_output_suffix(output: Path, animated: bool) -> None:
+    expected = ".gif" if animated else ".png"
+    if output.suffix.lower() != expected:
+        media_type = "animated" if animated else "static"
+        raise ValueError(f"{media_type.capitalize()} output must use {expected}")
 
 
 def save_static(
@@ -140,7 +148,9 @@ def save_gif(
         default_duration = int(image.info.get("duration", 167) or 167)
         for frame in ImageSequence.Iterator(image):
             frames.append(prepare_frame(frame, fit, invert))
-            duration = int(frame.info.get("duration", default_duration) or default_duration)
+            duration = int(
+                frame.info.get("duration", default_duration) or default_duration
+            )
             durations.append(max(20, duration))
 
     save_animated_frames(frames, durations, output)
@@ -192,9 +202,7 @@ def save_video(
         raise ValueError("--max-seconds must be greater than zero.")
 
     with tempfile.TemporaryDirectory(prefix="wall_display_frames_") as temp:
-        frame_paths = extract_video_frames(
-            source, fps, max_seconds, Path(temp)
-        )
+        frame_paths = extract_video_frames(source, fps, max_seconds, Path(temp))
         if not frame_paths:
             raise RuntimeError("ffmpeg did not produce any frames.")
 
@@ -217,9 +225,10 @@ def verify_output(output: Path) -> str:
 
         frame_count = getattr(image, "n_frames", 1)
         if frame_count > 1:
-            durations = []
-            for frame in ImageSequence.Iterator(image):
-                durations.append(int(frame.info.get("duration", 0) or 0))
+            durations = [
+                int(frame.info.get("duration", 0) or 0)
+                for frame in ImageSequence.Iterator(image)
+            ]
             loop = image.info.get("loop")
             return (
                 f"{output} | {WIDTH}x{HEIGHT} | {frame_count} frames | "
@@ -258,10 +267,10 @@ def main() -> int:
         if args.output
         else (DEFAULT_ANIMATION_OUTPUT if animated else DEFAULT_IMAGE_OUTPUT)
     ).resolve()
-
     invert = not args.no_invert
 
     try:
+        validate_output_suffix(output, animated)
         if is_video:
             save_video(
                 source,

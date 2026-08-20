@@ -1,4 +1,5 @@
 substitutions:
+  # Change this before importing a second display on the same network.
   name: "st7789-wall-display-s3"
   friendly_name: "ST7789 Wall Display"
   project_version: "0.1.0"
@@ -19,7 +20,7 @@ esphome:
   on_boot:
     priority: -100
     then:
-      - logger.log: "ST7789 S3 0.1.0 starting"
+      - logger.log: "ST7789 S3 ${project_version} starting"
       - switch.turn_on: tft_backlight_output
       - text_sensor.template.publish:
           id: remote_image_status
@@ -43,11 +44,12 @@ psram:
 logger:
   level: INFO
 
-# Device Builder adds a unique local API encryption key.
+# SECURITY: This credential-free profile is intended for Device Builder import.
+# Do not compile or flash it directly until API encryption and an OTA password
+# have been configured.
 api:
   reboot_timeout: 15min
 
-# Device Builder adds a unique local OTA password.
 ota:
   - platform: esphome
 
@@ -74,8 +76,6 @@ wifi:
     then:
       - script.execute: ble_recovery_delay
 
-  # Kept disabled during this manual-install test. The user configures Wi-Fi
-  # before flashing, so an open fallback AP is not required.
   ap:
     ap_timeout: 0s
 
@@ -86,6 +86,8 @@ esp32_ble:
   enable_on_boot: false
   use_psram: true
 
+# The tested board has no dedicated physical authorizer. BLE is disabled during
+# normal operation and enabled only for the limited setup window below.
 esp32_improv:
   authorizer: none
   wifi_timeout: 90s
@@ -307,7 +309,6 @@ text:
 
     set_action:
       - lambda: |-
-          id(remote_image_url).publish_state(x);
           id(remote_image_loaded) = false;
       - online_image.set_url:
           id: remote_image
@@ -373,10 +374,15 @@ button:
     name: "Refresh Remote JPEG"
     icon: "mdi:refresh"
     on_press:
-      - select.set:
-          id: display_mode
-          option: "Remote JPEG"
-      - script.execute: refresh_remote_image
+      - if:
+          condition:
+            lambda: 'return id(display_mode).current_option() == "Remote JPEG";'
+          then:
+            - script.execute: refresh_remote_image
+          else:
+            - select.set:
+                id: display_mode
+                option: "Remote JPEG"
 
   - platform: template
     name: "Start BLE Setup"

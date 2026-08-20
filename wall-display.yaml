@@ -1,11 +1,10 @@
+# Development-only profile for compiled PNG/GIF media experiments.
 substitutions:
   device_name: "st7789-wall-display"
   friendly_name: "ST7789 Wall Display"
   project_name: "razaalam.esphome_st7789_wall_display"
   project_version: "0.2.0-dev"
 
-  # These demo files are safe to publish. Replace them with files generated
-  # by tools/prepare_media.py when testing personal media locally.
   compiled_image_file: "assets/demo/background_panel.png"
   compiled_animation_file: "assets/demo/animation_panel.gif"
 
@@ -21,6 +20,7 @@ substitutions:
 esphome:
   name: "${device_name}"
   friendly_name: "${friendly_name}"
+  min_version: 2026.7.4
   project:
     name: "${project_name}"
     version: "${project_version}"
@@ -28,7 +28,7 @@ esphome:
   on_boot:
     priority: -100
     then:
-      - logger.log: "ST7789 WALL DISPLAY STARTER 0.2.0-DEV"
+      - logger.log: "ST7789 WALL DISPLAY STARTER ${project_version}"
       - switch.turn_on: tft_backlight
       - select.set:
           id: display_mode
@@ -101,6 +101,8 @@ esp32_ble:
   enable_on_boot: false
   use_psram: true
 
+# This development profile has no dedicated physical authorizer and does not
+# include the primary S3 profile's full backlight guard.
 esp32_improv:
   authorizer: none
   wifi_timeout: 90s
@@ -132,8 +134,6 @@ image:
     type: RGB
     resize: 170x320
 
-  # Runtime JPEG color behavior must be verified physically before it is
-  # treated as equivalent to the compiled media path.
   - platform: online_image
     url: "${default_media_url}"
     id: remote_media_image
